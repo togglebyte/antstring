@@ -47,48 +47,48 @@ mod test {
     use super::*;
     use crate::AntString;
 
-//     fn test_range(range: impl FromRange, expected_output: &str) {
-//         let s = ["0123", "4", "5"];
-//         let mut string = AntString::new(s.as_slice());
-//         string.truncate(range);
-//         let actual = format!("{string}");
-//         assert_eq!(actual, expected_output.to_string());
-//     }
+    fn test_range(range: impl FromRange, expected_output: &str) {
+        let s = ["0123", "4", "5"];
+        let mut string = AntString::new(s.as_slice());
+        string.truncate(range);
+        let actual = format!("{string}");
+        assert_eq!(actual, expected_output.to_string());
+    }
 
-//     #[test]
-//     fn from_range() {
-//         test_range(0..5, "01234");
-//         test_range(2..5, "234");
-//         test_range(0..0, "");
-//         test_range(0..1, "0");
-//     }
+    #[test]
+    fn from_range() {
+        test_range(0..5, "01234");
+        test_range(2..5, "234");
+        test_range(0..0, "");
+        test_range(0..1, "0");
+    }
 
-    // #[test]
-    // fn from_range_from() {
-    //     test_range(0.., "012345");
-    //     test_range(3.., "345");
-    // }
+    #[test]
+    fn from_range_from() {
+        test_range(0.., "012345");
+        test_range(3.., "345");
+    }
 
-    // #[test]
-    // fn from_range_full() {
-    //     test_range(.., "012345");
-    // }
+    #[test]
+    fn from_range_full() {
+        test_range(.., "012345");
+    }
 
-    // #[test]
-    // fn from_range_inclusive() {
-    //     test_range(0..=5, "012345");
-    //     test_range(1..=5, "12345");
-    // }
+    #[test]
+    fn from_range_inclusive() {
+        test_range(0..=5, "012345");
+        test_range(1..=5, "12345");
+    }
 
-    // #[test]
-    // fn from_range_to() {
-    //     test_range(..5, "01234");
-    //     test_range(..3, "012");
-    // }
+    #[test]
+    fn from_range_to() {
+        test_range(..5, "01234");
+        test_range(..3, "012");
+    }
 
-    // #[test]
-    // fn from_range_to_inclusive() {
-    //     test_range(..=5, "012345");
-    //     test_range(..=2, "012");
-    // }
+    #[test]
+    fn from_range_to_inclusive() {
+        test_range(..=5, "012345");
+        test_range(..=2, "012");
+    }
 }

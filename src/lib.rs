@@ -56,7 +56,6 @@ pub use find::Find;
 // -----------------------------------------------------------------------------
 /// A string made up of string slices.
 #[derive(Clone)]
-// TODO: rename this to AntString
 pub struct AntString<'a, T> {
     inner: Vec<(&'a T, &'a str)>,
 }
@@ -124,13 +123,13 @@ impl<'a, T> AntString<'a, T> {
 
         let right = {
             let mut v = self.inner[slice_index..].to_vec();
-            let (annotation, first) = &v[0];//[index..];
-
+            let (annotation, slice) = &v[0];//[index..];
+            let first = &slice[index..];
             match first.is_empty() {
-                true => {
-                    v.remove(0);
+                true => { v.remove(0); }
+                false => {
+                    v[0] = (annotation, &first);
                 }
-                false => v[0] = (annotation, &first[index..]),
             }
 
             v
@@ -149,7 +148,7 @@ impl<'a, T> AntString<'a, T> {
     }
 
     /// Insert a string slice at a given position
-    pub fn insert(&mut self, pos: usize, new_slice: (&'a T, &'a str)) {
+    pub fn insert(&mut self, pos: usize, new_slice: &'a str) {
         let (mut slice_index, byte_index) = self.index(pos);
         let (annotation, slice) = &self.inner.remove(slice_index);
         let left = (*annotation, &slice[..byte_index]);
@@ -159,7 +158,7 @@ impl<'a, T> AntString<'a, T> {
             self.inner.insert(slice_index, left);
             slice_index += 1;
         }
-        self.inner.insert(slice_index, new_slice);
+        self.inner.insert(slice_index, (left.0, new_slice));
         slice_index += 1;
         if !right.1.is_empty() {
             self.inner.insert(slice_index, right);
@@ -358,11 +357,10 @@ impl<'a, T> UnicodeWidthStr for AntString<'a, T> {
 //     - Annotated chars -
 // -----------------------------------------------------------------------------
 /// An iterator over annotated characters.
-/// TODO: add example (perhaps to the function `annotated_chars` rather than this)
-pub struct AnnotatedChars<'a, T, U>  // if U has any references they have to live for as long as 'a
+pub struct AnnotatedChars<'a, T, U>
     where 
         T: Iterator<Item=&'a (&'a U, &'a str)>,
-        U: CharAnnotation + 'a
+        U: CharAnnotation
 {
     inner: T,
     current: Option<(&'a U, StdChars<'a>)>,
@@ -371,7 +369,7 @@ pub struct AnnotatedChars<'a, T, U>  // if U has any references they have to liv
 impl<'a, T, U> AnnotatedChars<'a, T, U> 
     where 
         T: Iterator<Item=&'a (&'a U, &'a str)>,
-        U: CharAnnotation + 'a
+        U: CharAnnotation
 {
     fn new(mut inner: T) -> Self {
         let current = inner.next().map(|(annotation, slice)| (*annotation, slice.chars()));
@@ -385,7 +383,7 @@ impl<'a, T, U> AnnotatedChars<'a, T, U>
 impl<'a, T, U> Iterator for AnnotatedChars<'a, T, U> 
     where 
         T: Iterator<Item=&'a (&'a U, &'a str)>,
-        U: CharAnnotation + 'a
+        U: CharAnnotation
 {
     type Item = (&'a U, char);
 
@@ -402,9 +400,7 @@ impl<'a, T, U> Iterator for AnnotatedChars<'a, T, U>
     }
 }
 
-
-
-/// TODO: properly document this
+/// An iterator over characters with their associated annotation
 pub trait CharAnnotation {
     /// The type returned together with the character when iterating over 
     /// the chars using the [`AntString::annotated_chars`]
@@ -716,9 +712,9 @@ mod test {
 
     #[test]
     fn insert() {
-        let mut s = AntString::new(["012a456"]);
-        s.remove(3..4);
-        s.insert(3, (&(), "3"));
+        let mut s = AntString::with_annotations([(&1000u32, "012"), (&500, "456")]);
+        // s.remove(3..4);
+        s.insert(3, "3");
         let actual = s.to_string();
         let expected = "0123456".to_string();
         assert_eq!(expected, actual);
