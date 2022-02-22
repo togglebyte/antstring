@@ -67,7 +67,6 @@ impl<'a> AntString<'a, ()> {
         let inner = inner.as_ref().iter().map(|s| (&(), *s)).collect();
         Self { inner }
     }
-
 }
 
 impl<'a, T> AntString<'a, T> {
@@ -87,22 +86,22 @@ impl<'a, T> AntString<'a, T> {
     }
 
     /// An iterator over the bytes of the inner string slices
-    pub fn bytes(&'a self) -> Bytes<'a, impl Iterator<Item=&'a str>> {
+    pub fn bytes(&'a self) -> Bytes<'a, impl Iterator<Item = &'a str>> {
         Bytes::new(self.inner.iter().map(|(_annotation, slice)| *slice))
     }
 
     /// An iterator over the characters of the inner string slices
-    pub fn chars(&'a self) -> Chars<'a, impl Iterator<Item=&'a str>> {
+    pub fn chars(&'a self) -> Chars<'a, impl Iterator<Item = &'a str>> {
         Chars::new(self.inner.iter().map(|(_annotation, slice)| *slice))
     }
 
     /// An iterator over the characters of the inner string slices, in reverse
-    pub fn chars_rev(&'a self) -> CharsRev<'a, impl Iterator<Item=&'a str>> {
+    pub fn chars_rev(&'a self) -> CharsRev<'a, impl Iterator<Item = &'a str>> {
         CharsRev::new(self.inner.iter().rev().map(|(_annotation, slice)| *slice))
     }
 
     /// An iterator over the characters and their index (byte position) of the inner string slices
-    pub fn char_indices(&'a self) -> CharIndices<'a, impl Iterator<Item=&'a str>> {
+    pub fn char_indices(&'a self) -> CharIndices<'a, impl Iterator<Item = &'a str>> {
         CharIndices::new(self.inner.iter().map(|(_annotation, slice)| *slice))
     }
 
@@ -115,7 +114,9 @@ impl<'a, T> AntString<'a, T> {
             let (annotation, slice) = &v[slice_index];
             let last = &slice[..index];
             match last.is_empty() {
-                true => { v.pop(); }
+                true => {
+                    v.pop();
+                }
                 false => v[slice_index] = (annotation, last),
             }
             v
@@ -123,13 +124,13 @@ impl<'a, T> AntString<'a, T> {
 
         let right = {
             let mut v = self.inner[slice_index..].to_vec();
-            let (annotation, slice) = &v[0];//[index..];
+            let (annotation, slice) = &v[0]; //[index..];
             let first = &slice[index..];
             match first.is_empty() {
-                true => { v.remove(0); }
-                false => {
-                    v[0] = (annotation, &first);
+                true => {
+                    v.remove(0);
                 }
+                false => v[0] = (annotation, first),
             }
 
             v
@@ -311,7 +312,7 @@ impl<'a, T> AntString<'a, T> {
 
 impl<'a, T: CharAnnotation> AntString<'a, T> {
     /// An iterator over the characters of the inner string slices
-    pub fn annotated_chars(&'a self) -> AnnotatedChars<'a, impl Iterator<Item=&'a (&'a T, &'a str)>, T> {
+    pub fn annotated_chars(&'a self) -> AnnotatedChars<'a, impl Iterator<Item = &'a (&'a T, &'a str)>, T> {
         AnnotatedChars::new(self.inner.iter())
     }
 }
@@ -358,32 +359,29 @@ impl<'a, T> UnicodeWidthStr for AntString<'a, T> {
 // -----------------------------------------------------------------------------
 /// An iterator over annotated characters.
 pub struct AnnotatedChars<'a, T, U>
-    where 
-        T: Iterator<Item=&'a (&'a U, &'a str)>,
-        U: CharAnnotation
+where
+    T: Iterator<Item = &'a (&'a U, &'a str)>,
+    U: CharAnnotation,
 {
     inner: T,
     current: Option<(&'a U, StdChars<'a>)>,
 }
 
-impl<'a, T, U> AnnotatedChars<'a, T, U> 
-    where 
-        T: Iterator<Item=&'a (&'a U, &'a str)>,
-        U: CharAnnotation
+impl<'a, T, U> AnnotatedChars<'a, T, U>
+where
+    T: Iterator<Item = &'a (&'a U, &'a str)>,
+    U: CharAnnotation,
 {
     fn new(mut inner: T) -> Self {
         let current = inner.next().map(|(annotation, slice)| (*annotation, slice.chars()));
-        Self {
-            inner,
-            current,
-        }
+        Self { inner, current }
     }
 }
 
-impl<'a, T, U> Iterator for AnnotatedChars<'a, T, U> 
-    where 
-        T: Iterator<Item=&'a (&'a U, &'a str)>,
-        U: CharAnnotation
+impl<'a, T, U> Iterator for AnnotatedChars<'a, T, U>
+where
+    T: Iterator<Item = &'a (&'a U, &'a str)>,
+    U: CharAnnotation,
 {
     type Item = (&'a U, char);
 
@@ -402,7 +400,7 @@ impl<'a, T, U> Iterator for AnnotatedChars<'a, T, U>
 
 /// An iterator over characters with their associated annotation
 pub trait CharAnnotation {
-    /// The type returned together with the character when iterating over 
+    /// The type returned together with the character when iterating over
     /// the chars using the [`AntString::annotated_chars`]
     type Annotation;
 
@@ -422,19 +420,19 @@ impl CharAnnotation for () {
 //     - Bytes -
 // -----------------------------------------------------------------------------
 /// An iterator over the bytes of the [`AntString`]
-pub struct Bytes<'a, T: Iterator<Item=&'a str>> {
+pub struct Bytes<'a, T: Iterator<Item = &'a str>> {
     inner: T,
     current: Option<StdBytes<'a>>,
 }
 
-impl<'a, T: Iterator<Item=&'a str>> Bytes<'a, T> {
+impl<'a, T: Iterator<Item = &'a str>> Bytes<'a, T> {
     fn new(mut inner: T) -> Self {
         let current = inner.next().map(|s| s.bytes());
         Self { inner, current }
     }
 }
 
-impl<'a, T: Iterator<Item=&'a str>> Iterator for Bytes<'a, T> {
+impl<'a, T: Iterator<Item = &'a str>> Iterator for Bytes<'a, T> {
     type Item = u8;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -453,19 +451,19 @@ impl<'a, T: Iterator<Item=&'a str>> Iterator for Bytes<'a, T> {
 //     - Chars -
 // -----------------------------------------------------------------------------
 /// An iterator over the chars of the [`AntString`]
-pub struct Chars<'a, T: Iterator<Item=&'a str>> {
+pub struct Chars<'a, T: Iterator<Item = &'a str>> {
     inner: T,
     current: Option<StdChars<'a>>,
 }
 
-impl<'a, T: Iterator<Item=&'a str>> Chars<'a, T> {
+impl<'a, T: Iterator<Item = &'a str>> Chars<'a, T> {
     fn new(mut inner: T) -> Self {
         let current = inner.next().map(|s| s.chars());
         Self { inner, current }
     }
 }
 
-impl<'a, T: Iterator<Item=&'a str>> Iterator for Chars<'a, T> {
+impl<'a, T: Iterator<Item = &'a str>> Iterator for Chars<'a, T> {
     type Item = char;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -481,19 +479,19 @@ impl<'a, T: Iterator<Item=&'a str>> Iterator for Chars<'a, T> {
 }
 
 /// An iterator over the chars of the [`AntString`]
-pub struct CharsRev<'a, T: Iterator<Item=&'a str>> {
+pub struct CharsRev<'a, T: Iterator<Item = &'a str>> {
     inner: T,
     current: Option<Rev<StdChars<'a>>>,
 }
 
-impl<'a, T: Iterator<Item=&'a str>> CharsRev<'a, T> {
+impl<'a, T: Iterator<Item = &'a str>> CharsRev<'a, T> {
     fn new(mut inner: T) -> Self {
         let current = inner.next().map(|slice| slice.chars().rev());
         Self { inner, current }
     }
 }
 
-impl<'a, T: Iterator<Item=&'a str>> Iterator for CharsRev<'a, T> {
+impl<'a, T: Iterator<Item = &'a str>> Iterator for CharsRev<'a, T> {
     type Item = char;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -518,14 +516,14 @@ pub struct CharIndices<'a, T> {
     offset: usize,
 }
 
-impl<'a, T: Iterator<Item=&'a str>> CharIndices<'a, T> {
+impl<'a, T: Iterator<Item = &'a str>> CharIndices<'a, T> {
     fn new(mut inner: T) -> Self {
         let current = inner.next().map(|slice| (slice.len(), slice.char_indices()));
         Self { inner, current, offset: 0 }
     }
 }
 
-impl<'a, T: Iterator<Item=&'a str>> Iterator for CharIndices<'a, T> {
+impl<'a, T: Iterator<Item = &'a str>> Iterator for CharIndices<'a, T> {
     type Item = (usize, char);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -545,6 +543,23 @@ impl<'a, T: Iterator<Item=&'a str>> Iterator for CharIndices<'a, T> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use proptest::prelude::*;
+
+    //     prop_compose! {
+    //         fn vec_and_index()(vec in prop::collection::vec(".*", 1..100))
+    //                         (index in 0..vec.len(), vec in Just(vec))
+    //                         -> (Vec<String>, usize) {
+    //            (vec, index)
+    //         }
+    //     }
+
+    prop_compose! {
+        fn string_and_len()(input in any::<String>())
+            (index in 0..input.len() + 1, input in Just(input)) -> (String, usize)
+        {
+            (input, index)
+        }
+    }
 
     #[test]
     fn bytes() {
@@ -555,6 +570,20 @@ mod test {
         assert_eq!(bytes.next().unwrap(), b'b');
     }
 
+    proptest! {
+        #[test]
+        // fn bytes_prop(left in "\\PC*", right in "\\PC*") {
+        fn bytes_prop(left in any::<String>(), right in any::<String>()) {
+            let string = AntString::new(&[left.as_ref(), right.as_ref()]);
+
+            for (a, b) in left.bytes().chain(right.bytes()).zip(string.bytes()) {
+                eprintln!("{a} - {b}");
+                prop_assert_eq!(a, b);
+            }
+
+        }
+    }
+
     #[test]
     fn chars() {
         let s = [(&(), "a"), (&(), "b")];
@@ -562,6 +591,18 @@ mod test {
         let mut chars = string.chars();
         assert_eq!(chars.next().unwrap(), 'a');
         assert_eq!(chars.next().unwrap(), 'b');
+    }
+
+    proptest! {
+        #[test]
+        fn chars_prop(left in any::<String>(), right in any::<String>()) {
+            let string = AntString::new(&[left.as_ref(), right.as_ref()]);
+
+            for (a, b) in left.chars().chain(right.chars()).zip(string.chars()) {
+                prop_assert_eq!(a, b);
+            }
+
+        }
     }
 
     #[test]
@@ -582,6 +623,18 @@ mod test {
         assert_eq!(chars.next().unwrap(), (0, 'a'));
         assert_eq!(chars.next().unwrap(), (1, '🍅'));
         assert_eq!(chars.next().unwrap(), (5, 'b'));
+    }
+
+    proptest! {
+        #[test]
+        fn char_indices_prop(left in any::<String>()) {
+            let string = AntString::new(&[left.as_ref()]);
+
+            for (a, b) in left.char_indices().zip(string.char_indices()) {
+                prop_assert_eq!(a, b);
+            }
+
+        }
     }
 
     #[test]
@@ -615,6 +668,20 @@ mod test {
         let mut string = AntString::new(s);
         let (left, _) = string.split_at(1);
         assert_eq!(left.to_string(), "0".to_string());
+    }
+
+    proptest! {
+        #[test]
+        fn split_left_prop((input, index) in string_and_len()) {
+            let index = if index == input.len() + 1 { input.len() } else { index };
+            if input.is_char_boundary(index) {
+                let mut string = AntString::new([input.as_ref()]);
+                let (left, _) = string.split_at(index);
+                let actual = format!("{left}");
+                let (expected, _) = input.split_at(index);
+                assert_eq!(expected, actual);
+            }
+        }
     }
 
     #[test]
@@ -719,5 +786,4 @@ mod test {
         let expected = "0123456".to_string();
         assert_eq!(expected, actual);
     }
-
 }
