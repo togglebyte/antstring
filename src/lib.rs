@@ -112,7 +112,7 @@ impl<'a, T> AntString<'a, T> {
     }
 
     /// Get a substring
-    pub fn silly_things(&self, range: impl FromRange) -> Self {
+    pub fn get(&self, range: impl FromRange) -> Self {
         let mut substring = Self { inner: self.inner.clone() };
         substring.truncate(range);
         substring
@@ -802,7 +802,7 @@ mod test {
     fn get() {
         let src = "0123456";
         let string = AntString::new([src]);
-        let sub = string.silly_things(1..4);
+        let sub = string.get(1..4);
 
         let expected = &src[1..4];
         let actual = sub.to_string();
