@@ -25,7 +25,7 @@ mod test {
     #[test]
     fn contains_char() {
         let s = ["ab", "cd"];
-        let mut string = AntString::new(s.as_slice());
+        let string = AntString::new(s.as_slice());
         assert!(string.contains('a'));
         assert!(string.contains('b'));
         assert!(string.contains('c'));

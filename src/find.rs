@@ -12,7 +12,7 @@ pub trait Find<P> : crate::sealed::Sealed {
 impl<'a, T> Find<char> for AntString<'a, T> {
     fn find(&self, pat: char) -> Option<usize> {
         let mut offset = 0;
-        for (_annotation, s) in self.inner.iter() {
+        for (_annotation, s) in &self.inner {
             match s.find(pat) {
                 Some(pos) => return Some(pos + offset),
                 None => offset += s.len(),
@@ -39,7 +39,7 @@ impl<'a, T> Find<char> for AntString<'a, T> {
 impl<'a, T> Find<&[char]> for AntString<'a, T> {
     fn find(&self, pat: &[char]) -> Option<usize> {
         let mut offset = 0;
-        for (_, s) in self.inner.iter() {
+        for (_, s) in &self.inner {
             match s.find(pat) {
                 Some(pos) => return Some(pos + offset),
                 None => offset += s.len(),

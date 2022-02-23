@@ -76,49 +76,64 @@ impl<'a, T> AntString<'a, T> {
     }
 
     /// The total length of the string in bytes
+    #[must_use]
     pub fn len(&self) -> usize {
         self.inner.iter().map(|(_, s)| s.len()).sum()
     }
 
     /// Returns true if this string has a length of zero, otherwise false
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
     /// An iterator over the bytes of the inner string slices
+    #[must_use]
     pub fn bytes(&'a self) -> Bytes<'a, impl Iterator<Item = &'a str>> {
         Bytes::new(self.inner.iter().map(|(_annotation, slice)| *slice))
     }
 
     /// An iterator over the characters of the inner string slices
+    #[must_use]
     pub fn chars(&'a self) -> Chars<'a, impl Iterator<Item = &'a str>> {
         Chars::new(self.inner.iter().map(|(_annotation, slice)| *slice))
     }
 
     /// An iterator over the characters of the inner string slices, in reverse
+    #[must_use]
     pub fn chars_rev(&'a self) -> CharsRev<'a, impl Iterator<Item = &'a str>> {
         CharsRev::new(self.inner.iter().rev().map(|(_annotation, slice)| *slice))
     }
 
     /// An iterator over the characters and their index (byte position) of the inner string slices
+    #[must_use]
     pub fn char_indices(&'a self) -> CharIndices<'a, impl Iterator<Item = &'a str>> {
         CharIndices::new(self.inner.iter().map(|(_annotation, slice)| *slice))
     }
 
+    /// Get a substring
+    pub fn silly_things(&self, range: impl FromRange) -> Self {
+        let mut substring = Self { inner: self.inner.clone() };
+        substring.truncate(range);
+        substring
+    }
+
     /// Split the string in two:
-    pub fn split_at(&mut self, index: usize) -> (Self, Self) {
+    #[must_use]
+    pub fn split_at(&self, index: usize) -> (Self, Self) {
         let (slice_index, index) = self.index(index);
 
         let left = {
             let mut v = self.inner[..=slice_index].to_vec();
             let (annotation, slice) = &v[slice_index];
             let last = &slice[..index];
-            match last.is_empty() {
-                true => {
-                    v.pop();
-                }
-                false => v[slice_index] = (annotation, last),
+
+            if last.is_empty() {
+                v.pop();
+            } else {
+                v[slice_index] = (annotation, last);
             }
+
             v
         };
 
@@ -126,11 +141,11 @@ impl<'a, T> AntString<'a, T> {
             let mut v = self.inner[slice_index..].to_vec();
             let (annotation, slice) = &v[0]; //[index..];
             let first = &slice[index..];
-            match first.is_empty() {
-                true => {
-                    v.remove(0);
-                }
-                false => v[0] = (annotation, first),
+
+            if first.is_empty() {
+                v.remove(0);
+            } else {
+                v[0] = (annotation, first);
             }
 
             v
@@ -191,7 +206,7 @@ impl<'a, T> AntString<'a, T> {
             return;
         }
 
-        for (_, slice) in self.inner.iter() {
+        for (_, slice) in &self.inner {
             let trimmed = slice.trim_start();
             if trimmed.is_empty() {
                 byte_index += slice.len();
@@ -250,12 +265,15 @@ impl<'a, T> AntString<'a, T> {
     /// string.truncate(..5);
     /// assert_eq!(string.to_string(), "01234".to_string());
     /// ```
+    ///
+    /// # Panics
+    ///
+    /// * Just like a regular string slice, using a range outside of the
+    ///   actual size of the [`AntString`] will panic.
     pub fn truncate(&mut self, range: impl FromRange) {
         let len = self.len();
         let (start, end) = range.into_start_end(len);
-        if end > len {
-            panic!("byte index: {} is out of bounds of `{}`", len, self);
-        }
+        assert!(len >= end, "byte index: {} is out of bounds of `{}`", len, self);
 
         // Truncate the end
         let (slice_index, end) = self.index(end);
@@ -265,7 +283,7 @@ impl<'a, T> AntString<'a, T> {
 
         // Drain the start
         let (slice_index, start) = self.index(start);
-        let _ = self.inner.drain(..slice_index);
+        drop(self.inner.drain(..slice_index));
         let (annotation, first) = &self.inner[0];
         let new_start = &first[start..];
 
@@ -312,6 +330,7 @@ impl<'a, T> AntString<'a, T> {
 
 impl<'a, T: CharAnnotation> AntString<'a, T> {
     /// An iterator over the characters of the inner string slices
+    #[must_use]
     pub fn annotated_chars(&'a self) -> AnnotatedChars<'a, impl Iterator<Item = &'a (&'a T, &'a str)>, T> {
         AnnotatedChars::new(self.inner.iter())
     }
@@ -322,7 +341,7 @@ impl<'a, T: CharAnnotation> AntString<'a, T> {
 // -----------------------------------------------------------------------------
 impl<'a, T> fmt::Display for AntString<'a, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for (_annoation, slice) in self.inner.iter() {
+        for (_annoation, slice) in &self.inner {
             write!(f, "{slice}")?;
         }
         Ok(())
@@ -334,7 +353,7 @@ impl<'a, T> fmt::Display for AntString<'a, T> {
 // -----------------------------------------------------------------------------
 impl<'a, T> fmt::Debug for AntString<'a, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for (_annotation, slice) in self.inner.iter() {
+        for (_annotation, slice) in &self.inner {
             write!(f, "{slice:?}")?;
         }
         Ok(())
@@ -427,7 +446,7 @@ pub struct Bytes<'a, T: Iterator<Item = &'a str>> {
 
 impl<'a, T: Iterator<Item = &'a str>> Bytes<'a, T> {
     fn new(mut inner: T) -> Self {
-        let current = inner.next().map(|s| s.bytes());
+        let current = inner.next().map(str::bytes);
         Self { inner, current }
     }
 }
@@ -440,7 +459,7 @@ impl<'a, T: Iterator<Item = &'a str>> Iterator for Bytes<'a, T> {
         match current.next() {
             Some(s) => Some(s),
             None => {
-                self.current = self.inner.next().map(|s| s.bytes());
+                self.current = self.inner.next().map(str::bytes);
                 self.current.as_mut()?.next()
             }
         }
@@ -458,7 +477,7 @@ pub struct Chars<'a, T: Iterator<Item = &'a str>> {
 
 impl<'a, T: Iterator<Item = &'a str>> Chars<'a, T> {
     fn new(mut inner: T) -> Self {
-        let current = inner.next().map(|s| s.chars());
+        let current = inner.next().map(str::chars);
         Self { inner, current }
     }
 }
@@ -471,7 +490,7 @@ impl<'a, T: Iterator<Item = &'a str>> Iterator for Chars<'a, T> {
         match current.next() {
             Some(s) => Some(s),
             None => {
-                self.current = self.inner.next().map(|s| s.chars());
+                self.current = self.inner.next().map(str::chars);
                 self.current.as_mut()?.next()
             }
         }
@@ -528,6 +547,7 @@ impl<'a, T: Iterator<Item = &'a str>> Iterator for CharIndices<'a, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let (next_offset, current) = self.current.as_mut()?;
+
         match current.next() {
             Some((i, c)) => Some((i + self.offset, c)),
             None => {
@@ -544,14 +564,6 @@ impl<'a, T: Iterator<Item = &'a str>> Iterator for CharIndices<'a, T> {
 mod test {
     use super::*;
     use proptest::prelude::*;
-
-    //     prop_compose! {
-    //         fn vec_and_index()(vec in prop::collection::vec(".*", 1..100))
-    //                         (index in 0..vec.len(), vec in Just(vec))
-    //                         -> (Vec<String>, usize) {
-    //            (vec, index)
-    //         }
-    //     }
 
     prop_compose! {
         fn string_and_len()(input in any::<String>())
@@ -650,7 +662,7 @@ mod test {
     #[test]
     fn split() {
         let s = ["0123", "4", "56"];
-        let mut string = AntString::new(s);
+        let string = AntString::new(s);
         let (left, right) = string.split_at(3);
 
         let actual = left.to_string();
@@ -665,7 +677,7 @@ mod test {
     #[test]
     fn split_left() {
         let s = ["0"];
-        let mut string = AntString::new(s);
+        let string = AntString::new(s);
         let (left, _) = string.split_at(1);
         assert_eq!(left.to_string(), "0".to_string());
     }
@@ -675,7 +687,7 @@ mod test {
         fn split_left_prop((input, index) in string_and_len()) {
             let index = if index == input.len() + 1 { input.len() } else { index };
             if input.is_char_boundary(index) {
-                let mut string = AntString::new([input.as_ref()]);
+                let string = AntString::new([input.as_ref()]);
                 let (left, _) = string.split_at(index);
                 let actual = format!("{left}");
                 let (expected, _) = input.split_at(index);
@@ -687,7 +699,7 @@ mod test {
     #[test]
     fn split_right() {
         let s = ["0"];
-        let mut string = AntString::new(s);
+        let string = AntString::new(s);
         let (_, right) = string.split_at(0);
         assert_eq!(right.to_string(), "0".to_string());
     }
@@ -695,8 +707,8 @@ mod test {
     #[test]
     fn split_twice() {
         let s = ["012345"];
-        let mut string = AntString::new(s);
-        let (_, mut right) = string.split_at(3);
+        let string = AntString::new(s);
+        let (_, right) = string.split_at(3);
         let (left, _) = right.split_at(2);
         let actual = format!("{}", left);
         let expected = "34".to_string();
@@ -780,10 +792,20 @@ mod test {
     #[test]
     fn insert() {
         let mut s = AntString::with_annotations([(&1000u32, "012"), (&500, "456")]);
-        // s.remove(3..4);
         s.insert(3, "3");
         let actual = s.to_string();
         let expected = "0123456".to_string();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn get() {
+        let src = "0123456";
+        let string = AntString::new([src]);
+        let sub = string.silly_things(1..4);
+
+        let expected = &src[1..4];
+        let actual = sub.to_string();
         assert_eq!(expected, actual);
     }
 }
