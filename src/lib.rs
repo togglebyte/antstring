@@ -328,7 +328,7 @@ impl<'a, T> AntString<'a, T> {
     }
 }
 
-impl<'a, T: CharAnnotation> AntString<'a, T> {
+impl<'a, T> AntString<'a, T> {
     /// An iterator over the characters of the inner string slices
     #[must_use]
     pub fn annotated_chars(&'a self) -> AnnotatedChars<'a, impl Iterator<Item = &'a (&'a T, &'a str)>, T> {
@@ -380,7 +380,7 @@ impl<'a, T> UnicodeWidthStr for AntString<'a, T> {
 pub struct AnnotatedChars<'a, T, U>
 where
     T: Iterator<Item = &'a (&'a U, &'a str)>,
-    U: CharAnnotation,
+    // U: CharAnnotation,
 {
     inner: T,
     current: Option<(&'a U, StdChars<'a>)>,
@@ -389,7 +389,7 @@ where
 impl<'a, T, U> AnnotatedChars<'a, T, U>
 where
     T: Iterator<Item = &'a (&'a U, &'a str)>,
-    U: CharAnnotation,
+    //U: CharAnnotation,
 {
     fn new(mut inner: T) -> Self {
         let current = inner.next().map(|(annotation, slice)| (*annotation, slice.chars()));
@@ -400,7 +400,7 @@ where
 impl<'a, T, U> Iterator for AnnotatedChars<'a, T, U>
 where
     T: Iterator<Item = &'a (&'a U, &'a str)>,
-    U: CharAnnotation,
+    //U: CharAnnotation,
 {
     type Item = (&'a U, char);
 
@@ -417,23 +417,23 @@ where
     }
 }
 
-/// An iterator over characters with their associated annotation
-pub trait CharAnnotation {
-    /// The type returned together with the character when iterating over
-    /// the chars using the [`AntString::annotated_chars`]
-    type Annotation;
+// /// An iterator over characters with their associated annotation
+// pub trait CharAnnotation {
+//     /// The type returned together with the character when iterating over
+//     /// the chars using the [`AntString::annotated_chars`]
+//     type Annotation;
 
-    /// Return a reference to the annotation
-    fn annotate(&self) -> &Self::Annotation;
-}
+//     /// Return a reference to the annotation
+//     fn annotate(&self) -> &Self::Annotation;
+// }
 
-impl CharAnnotation for () {
-    type Annotation = ();
+// impl CharAnnotation for () {
+//     type Annotation = ();
 
-    fn annotate(&self) -> &() {
-        &()
-    }
-}
+//     fn annotate(&self) -> &() {
+//         &()
+//     }
+// }
 
 // -----------------------------------------------------------------------------
 //     - Bytes -
