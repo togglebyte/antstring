@@ -543,13 +543,13 @@ impl<'a, T: Iterator<Item = &'a str>> Iterator for CharIndices<'a, T> {
 // -----------------------------------------------------------------------------
 /// Lines iterator for AntString (consumes the annotated string)
 pub struct Lines<'a, T> {
-    inner: AntString<'a, T>
+    inner: Option<AntString<'a, T>>
 }
 
 impl<'a, T> Lines<'a, T> {
     fn new(inner: AntString<'a, T>) -> Self {
         Self {
-            inner,
+            inner: Some(inner),
         }
     }
 }
@@ -558,10 +558,18 @@ impl<'a, T> Iterator for Lines<'a, T> {
     type Item = AntString<'a, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let pos = self.inner.find('\n')?;
-        let (mut left, right) = self.inner.split_at(pos + 1);
+        let inner = self.inner.as_mut()?;
+        let pos = match inner.find('\n') {
+            Some(pos) => pos,
+            None => return self.inner.take(),
+        };
+
+        let (mut left, right) = inner.split_at(pos + 1);
         left.remove(left.len() - 1..left.len());
-        self.inner = right;
+        self.inner = match right.is_empty() {
+            false => Some(right),
+            true => None,
+        };
         Some(left)
     }
 }
@@ -819,6 +827,17 @@ mod test {
     fn lines() {
         let vanilla_slice = "Goat\nA\nB\n\nC\n";
         let s = AntString::new(["Goat\nA\n", "B\n", "\nC\n"]);
+        let lines = s.lines();
+        let output = lines.map(|s| s.to_string()).collect::<Vec<_>>();
+        let vanilla = vanilla_slice.lines().collect::<Vec<_>>();
+
+        assert_eq!(output, vanilla);
+    }
+
+    #[test]
+    fn single_line() {
+        let vanilla_slice = "No lines here";
+        let s = AntString::new(["No li", "nes h", "ere"]);
         let lines = s.lines();
         let output = lines.map(|s| s.to_string()).collect::<Vec<_>>();
         let vanilla = vanilla_slice.lines().collect::<Vec<_>>();
