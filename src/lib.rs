@@ -2,21 +2,13 @@
 //! A zero allocations string type made up of string slices.
 //!
 //! ```
-//! use antstring::{AntString, CharAnnotation, Contains, Find};
+//! use antstring::{AntString, Contains, Find};
 //!
 //! #[derive(Debug)]
 //! enum Color {
 //!     Red,
 //!     Green,
 //!     Blue,
-//! }
-//!
-//! impl CharAnnotation for Color {
-//!     type Annotation = Self;
-//!
-//!     fn annotate(&self) -> &Self::Annotation {
-//!         self
-//!     }
 //! }
 //!
 //! let input = [(&Color::Red, "012"), (&Color::Green, "34"), (&Color::Blue, "5")];
@@ -567,7 +559,7 @@ impl<'a, T> Iterator for Lines<'a, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let pos = self.inner.find('\n')?;
-        let (mut left, mut right) = self.inner.split_at(pos + 1);
+        let (mut left, right) = self.inner.split_at(pos + 1);
         left.remove(left.len() - 1..left.len());
         self.inner = right;
         Some(left)
@@ -826,8 +818,8 @@ mod test {
     #[test]
     fn lines() {
         let vanilla_slice = "Goat\nA\nB\n\nC\n";
-        let mut s = AntString::new(["Goat\nA\n", "B\n", "\nC\n"]);
-        let mut lines = s.lines();
+        let s = AntString::new(["Goat\nA\n", "B\n", "\nC\n"]);
+        let lines = s.lines();
         let output = lines.map(|s| s.to_string()).collect::<Vec<_>>();
         let vanilla = vanilla_slice.lines().collect::<Vec<_>>();
 
