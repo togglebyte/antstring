@@ -154,6 +154,12 @@ impl<'a, T> AntString<'a, T> {
         (Self::with_annotations(left), Self::with_annotations(right))
     }
 
+    /// Split the string on newline characters, 
+    /// and consume the newline char
+    pub fn lines(self) -> Lines<'a, T> {
+        Lines::new(self)
+    }
+
     /// Cut out a chunk of the string
     pub fn remove(&mut self, range: impl FromRange) {
         let (start, end) = range.into_start_end(self.len());
@@ -201,6 +207,7 @@ impl<'a, T> AntString<'a, T> {
         }
 
         let mut byte_index = 0;
+
         // If the first character is not a whitespace character then bail
         if !self.inner.get(0).and_then(|(_, s)| s.chars().next()).unwrap_or(' ').is_whitespace() {
             return;
@@ -380,7 +387,6 @@ impl<'a, T> UnicodeWidthStr for AntString<'a, T> {
 pub struct AnnotatedChars<'a, T, U>
 where
     T: Iterator<Item = &'a (&'a U, &'a str)>,
-    // U: CharAnnotation,
 {
     inner: T,
     current: Option<(&'a U, StdChars<'a>)>,
@@ -389,7 +395,6 @@ where
 impl<'a, T, U> AnnotatedChars<'a, T, U>
 where
     T: Iterator<Item = &'a (&'a U, &'a str)>,
-    //U: CharAnnotation,
 {
     fn new(mut inner: T) -> Self {
         let current = inner.next().map(|(annotation, slice)| (*annotation, slice.chars()));
@@ -400,7 +405,6 @@ where
 impl<'a, T, U> Iterator for AnnotatedChars<'a, T, U>
 where
     T: Iterator<Item = &'a (&'a U, &'a str)>,
-    //U: CharAnnotation,
 {
     type Item = (&'a U, char);
 
@@ -416,24 +420,6 @@ where
         }
     }
 }
-
-// /// An iterator over characters with their associated annotation
-// pub trait CharAnnotation {
-//     /// The type returned together with the character when iterating over
-//     /// the chars using the [`AntString::annotated_chars`]
-//     type Annotation;
-
-//     /// Return a reference to the annotation
-//     fn annotate(&self) -> &Self::Annotation;
-// }
-
-// impl CharAnnotation for () {
-//     type Annotation = ();
-
-//     fn annotate(&self) -> &() {
-//         &()
-//     }
-// }
 
 // -----------------------------------------------------------------------------
 //     - Bytes -
@@ -557,6 +543,34 @@ impl<'a, T: Iterator<Item = &'a str>> Iterator for CharIndices<'a, T> {
                 iter.next().map(|(i, c)| (i + self.offset, c))
             }
         }
+    }
+}
+
+// -----------------------------------------------------------------------------
+//     - Lines -
+// -----------------------------------------------------------------------------
+/// Lines iterator for AntString (consumes the annotated string)
+pub struct Lines<'a, T> {
+    inner: AntString<'a, T>
+}
+
+impl<'a, T> Lines<'a, T> {
+    fn new(inner: AntString<'a, T>) -> Self {
+        Self {
+            inner,
+        }
+    }
+}
+
+impl<'a, T> Iterator for Lines<'a, T> {
+    type Item = AntString<'a, T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let pos = self.inner.find('\n')?;
+        let (mut left, mut right) = self.inner.split_at(pos + 1);
+        left.remove(left.len() - 1..left.len());
+        self.inner = right;
+        Some(left)
     }
 }
 
@@ -807,5 +821,16 @@ mod test {
         let expected = &src[1..4];
         let actual = sub.to_string();
         assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn lines() {
+        let vanilla_slice = "Goat\nA\nB\n\nC\n";
+        let mut s = AntString::new(["Goat\nA\n", "B\n", "\nC\n"]);
+        let mut lines = s.lines();
+        let output = lines.map(|s| s.to_string()).collect::<Vec<_>>();
+        let vanilla = vanilla_slice.lines().collect::<Vec<_>>();
+
+        assert_eq!(output, vanilla);
     }
 }
